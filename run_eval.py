@@ -28,7 +28,11 @@ def run_eval(config: EvalConfig) -> dict | None:
     """
 
     if config.log_samples:
-        output_dir = EVAL_BASE_DIR / config.model.replace("/", "_")
+        if config.model.startswith("/"):
+            model_name = config.model.split("/")[-1]
+        else:
+            model_name = config.model
+        output_dir = EVAL_BASE_DIR / model_name.replace("/", "_")
         evaluation_tracker = EvaluationTracker(output_path=output_dir)
     else:
         evaluation_tracker = None
@@ -62,7 +66,7 @@ def run_eval(config: EvalConfig) -> dict | None:
 def parse_args():
     parser = argparse.ArgumentParser(description="Run evaluation for a given checkpoint directory or a directory containing many checkpoint subdirectories, results will be saved in the same directory as the checkpoint directory in a results_<timestamp>.json file")
     parser.add_argument("model", type=str, help="model to be evaluated, can be a hf name, a path to a checkpoint directory, or a path to a directory containing many checkpoint subdirectories")
-    parser.add_argument("--tasks", type=List[str], required=False, default=["hendrycks_math", "hellaswag", "piqa", "arc_challenge", "gsm8k_cot", "mmlu"], help="Tasks to evaluate")
+    parser.add_argument("--tasks", type=str, required=False, default=["hendrycks_math", "hellaswag", "piqa", "arc_challenge", "gsm8k_cot", "mmlu"], help="Tasks to evaluate", nargs="+")
     parser.add_argument("--batch_size", type=int, required=False, default=8, help="Batch size to use for evaluation")
     parser.add_argument("--log_samples", action="store_true", required=False, default=True, help="Whether to log samples")
     parser.add_argument("--limit", type=int, required=False, default=None, help="Limit the number of examples per task to evaluate")
@@ -81,7 +85,7 @@ if __name__ == "__main__":
     if not Path(args.model).exists(): # model is a hf name
         logging.info(f"{args.model} seems to be a hf name, running eval")
         res = run_eval_for_path(args.model)
-        logging.info("Evaluated", args.model)
+        logging.info(f"Evaluated {args.model}")
         print(make_table(res))
     else:
         path = Path(args.model)
@@ -89,7 +93,7 @@ if __name__ == "__main__":
             logging.info(f"{args.model} seems to be a path to a checkpoint directory, running eval")
             logging.info(f"Evaluating {path}")
             res = run_eval_for_path(args.model)
-            logging.info("Evaluated", args.model)
+            logging.info(f"Evaluated {args.model}")
             print(make_table(res))
         else:
             logging.info(f"{args.model} seems to be a path to a directory containing many checkpoint subdirectories, running eval on each checkpoint directory")
@@ -99,5 +103,5 @@ if __name__ == "__main__":
                     continue
                 logging.info(f"Evaluating {checkpoint_dir}")
                 res = run_eval_for_path(str(checkpoint_dir))
-                logging.info("Evaluated", checkpoint_dir)
+                logging.info(f"Evaluated {str(checkpoint_dir)}")
                 print(make_table(res))
