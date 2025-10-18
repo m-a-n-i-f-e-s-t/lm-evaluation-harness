@@ -19,6 +19,7 @@ class EvalConfig:
     model: str
     tasks: List[str]
     batch_size: int
+    tp_size: int
     limit: int
     log_samples: bool
 
@@ -42,7 +43,10 @@ def run_eval(config: EvalConfig) -> dict | None:
         model_args={
             "pretrained": config.model,
             "enable_prefix_caching": False,
-        },
+            "trust_remote_code": True,
+            "gpu_memory_utilization": 0.9,
+            "tensor_parallel_size": config.tp_size,
+        } | ({"distributed_executor_backend": "mp", "dtype": "auto"} if config.tp_size > 1 else {}),
         tasks=config.tasks, 
         batch_size=config.batch_size,
         limit=config.limit,
@@ -66,10 +70,11 @@ def run_eval(config: EvalConfig) -> dict | None:
 def parse_args():
     parser = argparse.ArgumentParser(description="Run evaluation for a given checkpoint directory or a directory containing many checkpoint subdirectories, results will be saved in the same directory as the checkpoint directory in a results_<timestamp>.json file")
     parser.add_argument("model", type=str, help="model to be evaluated, can be a hf name, a path to a checkpoint directory, or a path to a directory containing many checkpoint subdirectories")
-    parser.add_argument("--tasks", type=str, required=False, default=["hendrycks_math", "hellaswag", "piqa", "arc_challenge", "gsm8k_cot", "mmlu"], help="Tasks to evaluate", nargs="+")
+    parser.add_argument("--tasks", type=str, required=False, default=["hendrycks_math", "hellaswag", "piqa", "arc_challenge", "gsm8k_cot", "mmlu", "winogrande", "arc_all_options"], help="Tasks to evaluate", nargs="+")
     parser.add_argument("--batch_size", type=int, required=False, default=8, help="Batch size to use for evaluation")
     parser.add_argument("--log_samples", action="store_true", required=False, default=True, help="Whether to log samples")
     parser.add_argument("--limit", type=int, required=False, default=None, help="Limit the number of examples per task to evaluate")
+    parser.add_argument("--tp_size", type=int, required=False, default=1, help="TP size to use for evaluation")
     return parser.parse_args()
 
 
@@ -78,7 +83,7 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
 
     def run_eval_for_path(model: str):
-        config = EvalConfig(model=model, tasks=args.tasks, batch_size=args.batch_size, log_samples=args.log_samples, limit=args.limit)
+        config = EvalConfig(model=model, tasks=args.tasks, batch_size=args.batch_size, log_samples=args.log_samples, limit=args.limit, tp_size=args.tp_size)
         res = run_eval(config)
         return res
 
