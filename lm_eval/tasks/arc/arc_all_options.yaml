@@ -1,0 +1,17 @@
+include: arc_easy.yaml
+task: arc_all_options
+dataset_name: ARC-Challenge
+doc_to_text: "{{question.strip()}}\n{% for i in range(choices['text']|length) %}{{choices['label'][i]}}. {{choices['text'][i]}}\n{% endfor %}Answer:"
+doc_to_target: "{{choices.label.index(answerKey)}}"
+doc_to_choice: "{{choices.label}}"
+should_decontaminate: true
+doc_to_decontamination_query: "Question: {{question}}\nAnswer:"
+metric_list:
+  - metric: acc
+    aggregation: mean
+    higher_is_better: true
+  - metric: acc_norm
+    aggregation: mean
+    higher_is_better: true
+metadata:
+  version: 1.0
