@@ -20,6 +20,7 @@ from . import (
     vllm_causallms,
     vllm_vlms,
 )
+from .powen3 import Powen3Config, Powen3ForCausalLM
 
 
 # TODO: implement __all__
