@@ -171,6 +171,7 @@ class Powen3Attention(nn.Module):
         self.attention_dropout = config.attention_dropout
         self.is_causal = True
         self.use_exp = config.use_exp
+        self.prefill_chunk_size = config.prefill_chunk_size
         self.chunk_size = config.chunk_size
         self.switch_over_seq_len = config.switch_over_seq_len
 
@@ -417,7 +418,7 @@ class Powen3Model(Powen3PreTrainedModel):
             inputs_embeds = self.embed_tokens(input_ids)
 
         if use_cache and past_key_values is None:
-            past_key_values = DynamicCache(config=self.config)
+            past_key_values = DynamicCache()
 
         if cache_position is None:
             past_seen_tokens = past_key_values.get_seq_length() if past_key_values is not None else 0
